@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+resultados/cache/
+videos_originais/
+docs/
