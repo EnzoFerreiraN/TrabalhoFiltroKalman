@@ -263,12 +263,4 @@ usam o codec mp4v; se algum player não abrir, converta para H.264 com
 `ffmpeg -i entrada.mp4 -c:v libx264 -crf 20 saida.mp4`. Os vídeos explicativos
 de cada experimento (`resultados/<experimento>/video_*.mp4`) já saem em H.264.
 
-## Para estudar o código
 
-Os dois integrantes precisam conseguir explicar qualquer parte. Ordem de leitura sugerida:
-
-1. `src/kalman.py`: as equações da aula, linha a linha.
-2. `src/detector.py`: o "sensor".
-3. `src/rastreador.py`: o ciclo predição → gating → correção / no escuro → perda.
-4. `rastrear.py`: o laço principal.
-5. `experimentos/comum.py`: como cada métrica é calculada.
