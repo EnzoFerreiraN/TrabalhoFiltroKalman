@@ -225,19 +225,6 @@ Observações para a discussão:
   do borrão, da perspectiva e do arrasto do ar numa bola de isopor. Isso
   também é um bom ponto para discutir.
 
-### Referência marcada à mão (falta fazer)
-
-O enunciado sugere medir o erro contra uma referência marcada à mão. Enquanto
-`referencias/` estiver vazia, os experimentos 2 e 3 usam como referência a
-trajetória suavizada sem atraso (Savitzky-Golay centrado). Para usar a
-referência manual:
-
-```
-python ferramentas/marcar_referencia.py --video videos/movimento_mao.mp4 --passo 5
-python ferramentas/marcar_referencia.py --video videos/oclusao_pequeno_1.mp4 --passo 2
-python experimentos/2_bruto_vs_filtrado.py
-python experimentos/3_teimoso_vs_nervoso.py
-```
 
 ## Vídeos
 
@@ -263,12 +250,4 @@ usam o codec mp4v; se algum player não abrir, converta para H.264 com
 `ffmpeg -i entrada.mp4 -c:v libx264 -crf 20 saida.mp4`. Os vídeos explicativos
 de cada experimento (`resultados/<experimento>/video_*.mp4`) já saem em H.264.
 
-## Para estudar o código
 
-Os dois integrantes precisam conseguir explicar qualquer parte. Ordem de leitura sugerida:
-
-1. `src/kalman.py`: as equações da aula, linha a linha.
-2. `src/detector.py`: o "sensor".
-3. `src/rastreador.py`: o ciclo predição → gating → correção / no escuro → perda.
-4. `rastrear.py`: o laço principal.
-5. `experimentos/comum.py`: como cada métrica é calculada.
