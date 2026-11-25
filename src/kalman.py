@@ -1,7 +1,7 @@
 """
-Filtro de Kalman implementado pela equipe (NumPy puro).
+Filtro de Kalman implementado 
 
-Notação da aula:
+Notação:
     modelo dinâmico     x_k = D x_{k-1} + w_k ,   w_k ~ N(0, Σd)
     modelo de medição   z_k = M x_k     + v_k ,   v_k ~ N(0, Σm)
 

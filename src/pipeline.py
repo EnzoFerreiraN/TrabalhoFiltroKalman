@@ -15,6 +15,14 @@ from .kalman import (modelo_velocidade_constante, modelo_aceleracao_constante,
 from .rastreador import Rastreador
 
 
+def avisar_caminho(caminho):
+    """No Windows o OpenCV não abre/grava vídeos em caminhos com acento ou ç."""
+    if os.name == "nt" and not os.path.abspath(caminho).isascii():
+        print(f"AVISO: o caminho '{os.path.abspath(caminho)}' tem acento ou caractere especial. "
+              "No Windows o OpenCV costuma falhar nesses caminhos; coloque o projeto numa "
+              "pasta sem acentos, por exemplo C:\\projetos\\Visao.")
+
+
 def abrir_fonte(fonte, largura=None, altura=None):
     """fonte: caminho de vídeo ou índice da webcam ("0", "1"...)."""
     if isinstance(fonte, str) and fonte.isdigit():
@@ -24,6 +32,7 @@ def abrir_fonte(fonte, largura=None, altura=None):
     else:
         if not os.path.exists(fonte):
             raise FileNotFoundError(fonte)
+        avisar_caminho(fonte)
         cap = cv2.VideoCapture(fonte)
     if not cap.isOpened():
         raise RuntimeError(f"nao consegui abrir {fonte}")
@@ -94,7 +103,7 @@ def serie(resultados, campo):
 
 def salvar_csv(resultados, caminho):
     os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
-    with open(caminho, "w", newline="") as f:
+    with open(caminho, "w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
         n = max((len(r.estado_vetor) for r in resultados
                  if r.estado_vetor is not None), default=4)

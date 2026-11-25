@@ -88,3 +88,46 @@ for v, (a, z) in trechos.items():
     fig.savefig(os.path.join(saida, f"{v}_sigma_d.png"), dpi=130)
     plt.close(fig)
 print("figuras e tabela em", saida)
+
+# =========================== vídeo ===========================
+from video_util import (gerar_videos, Gravador, tela, lado_a_lado, ler_quadros,
+                        desenhar_resultado, trilha, PRETO)
+from comum import VIDEOS as PASTA_VIDEOS
+import cv2
+
+if gerar_videos():
+    g = Gravador(os.path.join(saida, "video_teimoso_vs_nervoso.mp4"))
+    TIT = "Experimento 3 – Filtro teimoso × nervoso (Σd)"
+    NOMES = {"teimoso": "teimoso (elefante)", "intermediario": "intermediário",
+             "nervoso": "nervoso (peixinho)"}
+    CORES_TXT = {"teimoso": (120, 230, 120), "intermediario": (80, 180, 255),
+                 "nervoso": (110, 110, 255)}
+    partes = [("movimento_mao", range(120, 480), 1,
+               "mão, curvas bruscas. \"No escuro\" = a bola estava visível, mas foi rejeitada."),
+              ("oclusao_pequeno_1", range(61, 156), 2,
+               "bola rolando, movimento suave (câmera lenta 2x). Aqui o teimoso tem o menor erro.")]
+    for k, (v, quadros, lento, desc) in enumerate(partes):
+        d, _, _ = deteccoes(v)
+        b = bruto(d)
+        dr = com_ruido(d, RUIDO)
+        res = {n: rodar_rastreador(dr, fabrica("cv", sd, RUIDO)) for n, sd in SIGMA_D_CV.items()}
+        est = {n: serie(r, "estimativa") for n, r in res.items()}
+        qs = ler_quadros(os.path.join(PASTA_VIDEOS, v + ".mp4"))
+        ini = quadros[0]
+        for i in quadros:
+            paineis, rotulos = [], []
+            for n, sd in SIGMA_D_CV.items():
+                traj = [p for p in est[n][max(ini, i - 30):i + 1] if not np.isnan(p).any()]
+                im = desenhar_resultado(qs[i], res[n][i], traj, escala=1.0)
+                trilha(im, b[max(ini, i - 30):i + 1], PRETO, 1)
+                e = np.nanmean(np.linalg.norm(est[n][ini:i + 1] - b[ini:i + 1], axis=1))
+                escuro = sum(r.estado == "no_escuro" for r in res[n][ini:i + 1])
+                paineis.append(im)
+                rotulos.append(f"{NOMES[n]} σd={sd:g}".replace(".", ","))
+                rotulos[-1] += f"\nerro médio {e:.1f} px · no escuro {escuro} quadros".replace(".", ",")
+            conteudo = lado_a_lado(paineis, rotulos, cores=[CORES_TXT[n] for n in SIGMA_D_CV])
+            q = tela(conteudo, TIT, f"{v}: {desc}",
+                     f"parte {k + 1}/2")
+            g.add(q, lento)
+        g.pausa(q, 1.5)
+    g.fechar()

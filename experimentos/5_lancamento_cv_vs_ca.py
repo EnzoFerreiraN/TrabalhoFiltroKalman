@@ -172,3 +172,69 @@ tabela_md(["video", "modelo", "k", "n", "erro medio (px)"], l_k, md,
 tabela_md(["video", "modelo", "quadros antes do cruzamento", "erro em y (px)"],
           l_linha, md, "Extensao: previsao do ponto de cruzamento da linha")
 print("figuras e tabela em", saida)
+
+# =========================== vídeo ===========================
+from video_util import (gerar_videos, Gravador, tela, lado_a_lado, ler_quadros,
+                        desenhar_resultado, escrever, BRANCO, MAGENTA)
+from comum import VIDEOS as PASTA_VIDEOS
+import cv2
+
+if gerar_videos():
+    g = Gravador(os.path.join(saida, "video_lancamento_cv_vs_ca.mp4"))
+    TIT = "Experimento 5 – Lançamento: velocidade × aceleração constante"
+    E = 1.0   # ampliação para desenhar
+
+    def ponto(p):
+        return int(p[0] * E), int(p[1] * E)
+
+    for k, v in enumerate(["lancamento_horizontal", "lancamento_2"]):
+        d, _, _ = deteccoes(v)
+        b = bruto(d)
+        idx = np.where(~np.isnan(b).any(axis=1))[0]
+        xl = b[idx[0], 0] + FRAC_LINHA * (b[idx[-1], 0] - b[idx[0], 0])
+        tc, yc = cruzamento(b[idx, 0], b[idx, 1], xl)
+        qs = ler_quadros(os.path.join(PASTA_VIDEOS, v + ".mp4"))
+        res = {n: rodar_rastreador(d, fab) for n, fab in FABS.items()}
+        mods = {n: fab() for n, fab in FABS.items()}
+        ini, fim = idx[0] - 8, idx[-1]
+        for i in range(ini, fim + 1):
+            paineis, rotulos = [], []
+            for n in FABS:
+                r = res[n][i]
+                traj = [x.estimativa for x in res[n][idx[0]:i + 1]
+                        if x.estimativa is not None and x.estado != "inativo"]
+                im = desenhar_resultado(qs[i], r, traj, escala=E)
+                h = im.shape[0]
+                cv2.line(im, (int(xl * E), 0), (int(xl * E), h), BRANCO, 2, cv2.LINE_AA)
+                cv2.circle(im, ponto((xl, yc)), 10, BRANCO, 2, cv2.LINE_AA)
+                linhas = []
+                if r.estado_vetor is not None and r.estado != "inativo" and i >= idx[0] + 2:
+                    caminho = [r.estado_vetor]
+                    for _ in range(40):
+                        caminho.append(mods[n].D @ caminho[-1])
+                    caminho = np.array(caminho)
+                    for a_, b_ in zip(caminho[:12:1], caminho[1:13:1]):
+                        if np.linalg.norm(b_[:2] - a_[:2]) > 0:
+                            cv2.line(im, ponto(a_[:2]), ponto(b_[:2]), (0, 0, 220) if n == "CV"
+                                     else (200, 0, 160), 2, cv2.LINE_AA)
+                    for p in caminho[1:13]:
+                        cv2.circle(im, ponto(p[:2]), 3, BRANCO, -1, cv2.LINE_AA)
+                    if (caminho[0][0] - xl) * (b[idx[-1], 0] - xl) < 0 or i <= tc + idx[0]:
+                        _, yp = cruzamento(caminho[:, 0], caminho[:, 1], xl)
+                        if yp is not None and i < idx[0] + tc:
+                            cv2.drawMarker(im, ponto((xl, yp)), MAGENTA, cv2.MARKER_DIAMOND, 22, 3)
+                            linhas.append(f"erro no cruzamento: {abs(yp - yc):.0f} px")
+                    if n == "CA":
+                        linhas.append(f"ay estimado: {r.estado_vetor[5]:.2f} px/q²".replace(".", ","))
+                if linhas:
+                    im = escrever(im, [(t, (12, h - 52 - 24 * (len(linhas) - j)), 17, (30, 30, 30), True)
+                                       for j, t in enumerate(linhas)])
+                paineis.append(im)
+                rotulos.append("velocidade constante (CV)" if n == "CV" else
+                               "aceleração constante (CA)")
+            conteudo = lado_a_lado(paineis, rotulos, cores=[(110, 110, 255), (230, 120, 230)])
+            q = tela(conteudo, TIT, f"{v}, câmera lenta 8x. O CV prevê a bola sempre acima; o CA dobra a "
+                     "previsão para baixo, como a gravidade.", f"lançamento {k + 1}/2")
+            g.add(q, 8)
+        g.pausa(q, 2)
+    g.fechar()

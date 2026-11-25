@@ -45,7 +45,7 @@ def main():
     os.makedirs(os.path.dirname(saida), exist_ok=True)
     marcas = {}
     if os.path.exists(saida):
-        with open(saida) as f:
+        with open(saida, encoding="utf-8") as f:
             for l in csv.DictReader(f):
                 marcas[int(l["quadro"])] = (None if l["x"] == "" else
                                             (float(l["x"]), float(l["y"])))
@@ -84,7 +84,7 @@ def main():
             break
     cv2.destroyAllWindows()
 
-    with open(saida, "w", newline="") as f:
+    with open(saida, "w", newline="", encoding="utf-8") as f:
         wr = csv.writer(f)
         wr.writerow(["quadro", "x", "y"])
         for q in sorted(marcas):

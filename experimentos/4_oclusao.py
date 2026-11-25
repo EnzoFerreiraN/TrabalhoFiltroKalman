@@ -160,3 +160,67 @@ fig.suptitle("Oclusao sintetica: erro da predicao ao longo da oclusao")
 fig.tight_layout()
 fig.savefig(os.path.join(saida, "erro_vs_tempo_oclusao.png"), dpi=130)
 print("figuras e tabela em", saida)
+
+# =========================== vídeo ===========================
+from video_util import (gerar_videos, Gravador, tela, lado_a_lado, ler_quadros,
+                        desenhar_resultado, painel_curvas, escrever, VERMELHO, CINZA)
+from comum import VIDEOS as PASTA_VIDEOS
+import cv2
+
+if gerar_videos():
+    g = Gravador(os.path.join(saida, "video_oclusao.mp4"))
+    TIT = "Experimento 4 – Oclusões"
+    fab = MODELOS["CV"]
+
+    def clipe(v, ini, fim, lento, legenda, apagar=None, parte=""):
+        d, _, _ = deteccoes(v)
+        b = bruto(d)
+        res = rodar_rastreador(d[:fim + 1], fab, quadros_sem_medicao=apagar)
+        est = serie(res, "estimativa")
+        raio = np.array([raio_busca(r.S) if r.S is not None else np.nan for r in res])
+        erro = np.linalg.norm(est - b[:fim + 1], axis=1) if apagar else None
+        ymax_raio = 100 * np.ceil(np.nanmax(raio[ini:fim + 1]) / 100)
+        qs = ler_quadros(os.path.join(PASTA_VIDEOS, v + ".mp4"))
+        q = None
+        for i in range(ini, fim + 1):
+            r = res[i]
+            traj = [p for p in est[ini:i + 1] if not np.isnan(p).any()]
+            im = desenhar_resultado(qs[i], r, traj, escala=1.6)
+            if apagar and i in apagar and not np.isnan(b[i]).any():
+                p = (int(b[i][0] * 1.6), int(b[i][1] * 1.6))
+                cv2.circle(im, p, 18, (255, 255, 255), 3, cv2.LINE_AA)
+                if r.estimativa is not None:
+                    e = (int(r.estimativa[0] * 1.6), int(r.estimativa[1] * 1.6))
+                    cv2.line(im, p, e, (255, 255, 255), 1, cv2.LINE_AA)
+                im = escrever(im, [("medições apagadas – círculo branco = bola real",
+                                    (12, im.shape[0] - 70), 18, VERMELHO, True)])
+            n_escuro = r.sem_medicao if r.estado == "no_escuro" else 0
+            estado = {"rastreando": "rastreando (com medição)", "no_escuro":
+                      f"NO ESCURO há {n_escuro} quadros", "inativo": "sem trilha"}[r.estado]
+            if erro is not None:
+                serie_g = [("erro da estimativa (px)", erro[ini:i + 1], (0, 120, 255))]
+                graf = painel_curvas(serie_g, 40, "erro em relação à bola real", larg=520, alt=590,
+                                     nx=fim - ini + 1, xrot="quadro")
+            else:
+                serie_g = [("raio da região de busca (px)", raio[ini:i + 1], VERMELHO)]
+                graf = painel_curvas(serie_g, ymax_raio, "tamanho da região de busca", larg=520,
+                                     alt=590, nx=fim - ini + 1, xrot="quadro")
+            faixa = np.full((50, 520, 3), 250, np.uint8)
+            faixa = escrever(faixa, [(estado, (62, 12), 20,
+                                      VERMELHO if r.estado == "no_escuro" else (40, 40, 40), True)])
+            graf = np.vstack([graf, faixa])
+            conteudo = lado_a_lado([cv2.resize(im, (360, 640)), graf],
+                                   [f"{v} · quadro {i}", "o que acontece por dentro"])
+            q = tela(conteudo, TIT, legenda, parte)
+            g.add(q, lento)
+        g.pausa(q, 1.5)
+
+    clipe("oclusao_pequeno_2", 95, 140, 3, "Oclusão curta (2–3 quadros): a predição quase não se afasta. Câmera lenta 3x.",
+          parte="A · oclusão real 1/3")
+    clipe("oclusao_medio_1", 70, 125, 3, "Oclusão de 17 quadros: a elipse cresce e a bola reaparece dentro dela. Câmera lenta 3x.",
+          parte="A · oclusão real 2/3")
+    clipe("oclusao_grande", 112, 172, 3, "Oclusão de 27 quadros: a predição erra mais, mas a trilha é recuperada. Câmera lenta 3x.",
+          parte="A · oclusão real 3/3")
+    clipe("oclusao_pequeno_1", 92, 135, 4, "15 medições apagadas: o erro cresce com o tempo no escuro. Câmera lenta 4x.",
+          apagar=set(range(100, 115)), parte="B · oclusão sintética")
+    g.fechar()

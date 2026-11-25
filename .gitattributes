@@ -1,0 +1,11 @@
+# Mesmas quebras de linha em Windows, Linux e macOS
+* text=auto
+*.py text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+# arquivos binários: o git não deve mexer
+*.mp4 binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.pkl binary

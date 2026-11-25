@@ -70,7 +70,7 @@ def referencia(nome_video, traj_bruta, janela=11, ordem=3):
     arq = os.path.join(REFERENCIAS, nome_video + ".csv")
     ref = np.full_like(traj_bruta, np.nan)
     if os.path.exists(arq):
-        with open(arq) as f:
+        with open(arq, encoding="utf-8") as f:
             for linha in csv.DictReader(f):
                 if linha["x"] != "":
                     ref[int(linha["quadro"])] = [float(linha["x"]), float(linha["y"])]
@@ -151,6 +151,6 @@ def tabela_md(cabecalho, linhas, caminho, titulo=None):
     txt += "|" + "---|" * len(cabecalho) + "\n"
     for l in linhas:
         txt += "| " + " | ".join(fmt(v) for v in l) + " |\n"
-    with open(caminho, "a") as f:
+    with open(caminho, "a", encoding="utf-8") as f:
         f.write(txt + "\n")
     print(txt)
