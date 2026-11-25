@@ -225,19 +225,6 @@ Observações para a discussão:
   do borrão, da perspectiva e do arrasto do ar numa bola de isopor. Isso
   também é um bom ponto para discutir.
 
-### Referência marcada à mão (falta fazer)
-
-O enunciado sugere medir o erro contra uma referência marcada à mão. Enquanto
-`referencias/` estiver vazia, os experimentos 2 e 3 usam como referência a
-trajetória suavizada sem atraso (Savitzky-Golay centrado). Para usar a
-referência manual:
-
-```
-python ferramentas/marcar_referencia.py --video videos/movimento_mao.mp4 --passo 5
-python ferramentas/marcar_referencia.py --video videos/oclusao_pequeno_1.mp4 --passo 2
-python experimentos/2_bruto_vs_filtrado.py
-python experimentos/3_teimoso_vs_nervoso.py
-```
 
 ## Vídeos
 
